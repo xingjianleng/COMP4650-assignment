@@ -22,6 +22,7 @@ def read_doc(file_path):
     toks = process_tokens(toks)
     return toks
 
+
 def gov_list_docs(docs_path):
     """List the documents in the gov directory.
     Makes explicit use of the gov directory structure and is not
@@ -42,6 +43,7 @@ def gov_list_docs(docs_path):
         path_list.extend(files)
     return path_list
 
+
 def make_doc_ids(path_list):
     """Assign unique doc_ids to documents.
 
@@ -59,6 +61,7 @@ def make_doc_ids(path_list):
         # increase docid
         cur_docid += 1
     return doc_ids
+
 
 def get_token_list(path_list, doc_ids):
     """Read all the documents and get a list of all the tokens
@@ -78,6 +81,7 @@ def get_token_list(path_list, doc_ids):
             all_toks.append((tok, doc_id))
     return sorted(all_toks)
 
+
 def index_from_tokens(all_toks):
     """Construct an index from the sorted list of token, doc_id tuples.
 
@@ -91,9 +95,23 @@ def index_from_tokens(all_toks):
         frequency.
     """
 
-    # TODO: implement this function.
+    extraction, index, doc_freq = {}, {}, {}
+    # extract the documents
+    for token, doc_id in all_toks:
+        if token in extraction:
+            if doc_id in extraction[token]:
+                extraction[token][doc_id] += 1
+            else:
+                extraction[token][doc_id] = 1
+        else:
+            extraction[token] = {doc_id: 1}
+    # put extraction into output format
+    for token, info in extraction.items():
+        index[token] = [doc_count for doc_count in info.items()]
+        doc_freq[token] = len(info)
 
     return index, doc_freq
+
 
 # run the index example given in the assignment text
 print(index_from_tokens([("cat", 1), ("cat", 1), ("cat", 2), ("door", 1), ("water", 3)]))
