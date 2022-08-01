@@ -53,7 +53,8 @@ def get_doc_to_norm(index, doc_freq, num_docs):
     # calculate square of norm for all docs
     for term in index.keys():
         for doc_id, doc_tf in index[term]:
-            doc_norm[doc_id] += doc_tf **2
+            idf = np.log(num_docs / (1 + doc_freq[term]))
+            doc_norm[doc_id] += (doc_tf * idf) ** 2
 
     # take square root squared norms
     for doc_id in doc_norm.keys():
@@ -83,7 +84,12 @@ def run_query(query_token_counts, index, doc_freq, doc_norm, num_docs):
     # calculate the norm of the query vector
     query_norm = 0
     for query_term, query_tf in query_token_counts:
-        query_norm += query_tf**2
+        if query_term not in doc_freq.keys():
+            continue
+        else:
+            idf = np.log(num_docs / (1 + doc_freq[query_term]))
+            query_norm += (query_tf * idf) ** 2
+
     query_norm = np.sqrt(query_norm)
 
     # calculate cosine similarity for all relevant documents

@@ -1,5 +1,8 @@
 from nltk.stem import PorterStemmer
+from nltk.stem import WordNetLemmatizer
+from nltk.tag import pos_tag
 import nltk
+import string
 
 
 def process_tokens(toks):
@@ -13,8 +16,8 @@ def process_tokens(toks):
 
     #return process_tokens_1(toks)
     #return process_tokens_2(toks)
-    #return process_tokens_3(toks)
-    return process_tokens_original(toks)
+    return process_tokens_3(toks)
+    #return process_tokens_original(toks)
 
 # get the nltk stopwords list
 stopwords = set(nltk.corpus.stopwords.words("english"))
@@ -36,6 +39,7 @@ def process_tokens_original(toks):
         new_toks.append(t)
     return new_toks
 
+ps = PorterStemmer()
 def process_tokens_1(toks):
     """ Perform processing on tokens. This is the Linguistics Modules
     phase of index construction
@@ -52,10 +56,21 @@ def process_tokens_1(toks):
         if t in stopwords or t.lower() in stopwords:
             continue
 
-        #TODO: your code should modify t and/or do some sort of filtering
-
-        new_toks.append(t)
+        # Use PorterStemmer for stemming
+        new_toks.append(ps.stem(t))
     return new_toks
+
+wl = WordNetLemmatizer()  # TODO: Investigate why lemmatizer doesn't work well
+def word_pos(token):
+    pos = pos_tag([token])[0][1][0]
+    if pos == "J":
+        return "a"
+    elif pos == "V":
+        return "v"
+    elif pos == "R":
+        return "r"
+    else:
+        return "n"
 
 def process_tokens_2(toks):
     """ Perform processing on tokens. This is the Linguistics Modules
@@ -73,9 +88,7 @@ def process_tokens_2(toks):
         if t in stopwords or t.lower() in stopwords:
             continue
 
-        #TODO: your code should modify t and/or do some sort of filtering
-
-        new_toks.append(t)
+        new_toks.append(wl.lemmatize(t, pos=word_pos(t)))
     return new_toks
 
 def process_tokens_3(toks):
@@ -94,8 +107,8 @@ def process_tokens_3(toks):
         if t in stopwords or t.lower() in stopwords:
             continue
 
-        #TODO: your code should modify t and/or do some sort of filtering
-
+        if t in string.punctuation:
+            continue
         new_toks.append(t)
     return new_toks
 
