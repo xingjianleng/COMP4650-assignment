@@ -47,10 +47,9 @@ def get_doc_to_norm(index, doc_freq, num_docs):
     Returns:
         dict(int: float): a dictionary mapping doc_ids to document norms
     """
-    # TODO: Edit this function to implement tfidf
 
     doc_norm = defaultdict(int)
-    # calculate square of norm for all docs
+    # calculate the euclidean norm of tfidf for each document (norm for each document)
     for term in index.keys():
         for doc_id, doc_tf in index[term]:
             idf = np.log(num_docs / (1 + doc_freq[term]))
@@ -79,28 +78,33 @@ def run_query(query_token_counts, index, doc_freq, doc_norm, num_docs):
         sorted so that the most similar documents to the query are at the top.
     """
 
-    # TODO: Edit this function to implement tfidf
-
     # calculate the norm of the query vector
     query_norm = 0
     for query_term, query_tf in query_token_counts:
         if query_term not in doc_freq.keys():
-            continue
+            idf = np.log(num_docs)
         else:
             idf = np.log(num_docs / (1 + doc_freq[query_term]))
-            query_norm += (query_tf * idf) ** 2
+        query_norm += (query_tf * idf) ** 2
 
     query_norm = np.sqrt(query_norm)
 
     # calculate cosine similarity for all relevant documents
     doc_to_score = defaultdict(float)
+    # this ignores terms that are in documents but not in query, as it gives 0 for query_tf
     for query_term, query_tf in query_token_counts:
-        # ignore query terms not in the index
+        # ignore query terms not in the index, as it gives 0 for doc_tf
         if query_term not in index:
             continue
-        # add to similarity for documents that contain current query word
+        # calculate the dot product of TF-IDF score for documents and the query
         for doc_id, doc_tf in index[query_term]:
-            doc_to_score[doc_id] += query_tf * doc_tf / (doc_norm[doc_id] * query_norm)
+            idf = np.log(num_docs / (1 + doc_freq[query_term]))
+            doc_tfidf = doc_tf * idf
+            query_tfidf = query_tf * idf
+            doc_to_score[doc_id] += query_tfidf * doc_tfidf
+    # divide the dot product values by the product of their norms to get cosine similarity
+    for doc_id in doc_to_score.keys():
+        doc_to_score[doc_id] /= doc_norm[doc_id] * query_norm
 
     sorted_docs = sorted(doc_to_score.items(), key=lambda x:-x[1])
     return sorted_docs
