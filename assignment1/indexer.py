@@ -1,8 +1,6 @@
-import numpy as np
 import glob
 import os
 import pickle
-from collections import defaultdict
 
 from string_processing import *
 
@@ -112,7 +110,6 @@ def index_from_tokens(all_toks):
 
     return index, doc_freq
 
-
 # run the index example given in the assignment text
 print(index_from_tokens([("cat", 1), ("cat", 1), ("cat", 2), ("door", 1), ("water", 3)]))
 
@@ -134,4 +131,3 @@ del tok_list # free some memory
 
 # store the index to disk
 pickle.dump((index, doc_freq, doc_ids, num_docs), open("stored_index.pik", "wb"))
-

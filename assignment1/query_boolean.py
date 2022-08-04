@@ -1,24 +1,51 @@
-from collections import defaultdict
 import pickle
-import os
-import numpy as np
-
-from string_processing import *
 
 
 def intersect_query(doc_list1, doc_list2):
-    # TODO: you might like to use a function like this 
     # in your run_boolean_query implementation
     # for full marks this should be the O(n + m) intersection algorithm for sorted lists
     # using data structures such as sets or dictionaries in this function will not score full marks
-    return res
+    rtn = []
+    ptr1, ptr2 = 0, 0
+    while ptr1 < len(doc_list1) and ptr2 < len(doc_list2):
+        if doc_list1[ptr1] == doc_list2[ptr2]:
+            rtn.append(doc_list1[ptr1])
+            ptr1 += 1
+            ptr2 += 1
+        elif doc_list1[ptr1] < doc_list2[ptr2]:
+            ptr1 += 1
+        else:
+            ptr2 += 1
+    # no intersection if one list run out of elements
+    return rtn
+
 
 def union_query(doc_list1, doc_list2):
-    # TODO: you might like to use a function like this 
     # in your run_boolean_query implementation
     # for full marks this should be the O(n + m) union algorithm for sorted lists
     # using data structures such as sets or dictionaries in this function will not score full marks
-    return res
+    rtn = []
+    ptr1, ptr2 = 0, 0
+    while ptr1 < len(doc_list1) and ptr2 < len(doc_list2):
+        if doc_list1[ptr1] == doc_list2[ptr2]:
+            rtn.append(doc_list1[ptr1])
+            ptr1 += 1
+            ptr2 += 1
+        while ptr1 < len(doc_list1) and ptr2 < len(doc_list2) and doc_list1[ptr1] < doc_list2[ptr2]:
+            rtn.append(doc_list1[ptr1])
+            ptr1 += 1
+        while ptr1 < len(doc_list1) and ptr2 < len(doc_list2) and doc_list1[ptr1] > doc_list2[ptr2]:
+            rtn.append(doc_list2[ptr2])
+            ptr2 += 1
+    # if either list have remaining elements, append them to return list
+    while ptr1 < len(doc_list1):
+        rtn.append(doc_list1[ptr1])
+        ptr1 += 1
+    while ptr2 < len(doc_list2):
+        rtn.append(doc_list2[ptr2])
+        ptr2 += 1
+    return rtn
+
 
 def run_boolean_query(query, index):
     """Runs a boolean query using the index.
@@ -30,9 +57,18 @@ def run_boolean_query(query, index):
     Returns:
         list(int): a list of doc_ids which are relevant to the query
     """
-    # TODO: implement this function
-
-    return relevant_docs
+    ptr = 1
+    query_lst = query.split()
+    result_lst = [doc_id for doc_id, _ in index[query_lst[0]]]
+    while ptr < len(query_lst):
+        connective = query_lst[ptr]
+        next_lst = [doc_id for doc_id, _ in index[query_lst[ptr + 1]]]
+        if connective == "AND":
+            result_lst = intersect_query(result_lst, next_lst)
+        else:
+            result_lst = union_query(result_lst, next_lst)
+        ptr += 2
+    return result_lst
 
 
 # load the stored index
@@ -55,11 +91,10 @@ queries = [
 ]
 
 # run each of the queries and print the result
-ids_to_doc = {v:k for k, v in doc_ids.items()}
+ids_to_doc = {v: k for k, v in doc_ids.items()}
 for q in queries:
     res = run_boolean_query(q, index)
     res.sort(key=lambda x: ids_to_doc[x])
     print(q)
     for r in res:
         print(ids_to_doc[r])
-

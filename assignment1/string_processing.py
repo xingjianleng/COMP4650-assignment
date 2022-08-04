@@ -15,7 +15,7 @@ def process_tokens(toks):
     # tackling the other assignment questions
 
     # return process_tokens_1(toks)
-    return process_tokens_2(toks)
+    # return process_tokens_2(toks)
     # return process_tokens_3(toks)
     return process_tokens_original(toks)
 
@@ -120,7 +120,7 @@ def process_tokens_3(toks):
 
         if t in string.punctuation:
             continue
-        new_toks.append(t)
+        new_toks.append(t.strip(string.punctuation))
     return new_toks
 
 

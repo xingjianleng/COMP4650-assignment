@@ -21,6 +21,7 @@ def get_query_tokens(query_string):
     toks = process_tokens(toks)
     return toks
 
+
 def count_query_tokens(query_tokens):
     """Given a list of query tokens will count them and return 
     a list containing (unique token, term frequency)
@@ -35,6 +36,7 @@ def count_query_tokens(query_tokens):
     for tok in query_tokens:
         counts[tok] += 1
     return list(counts.items())
+
 
 def get_doc_to_norm(index, doc_freq, num_docs):
     """Precompute the norms for each document vector in the corpus.
@@ -60,6 +62,7 @@ def get_doc_to_norm(index, doc_freq, num_docs):
         doc_norm[doc_id] = np.sqrt(doc_norm[doc_id])
 
     return doc_norm
+
 
 def run_query(query_token_counts, index, doc_freq, doc_norm, num_docs):
     """ Run a query on the index and return a sorted list of documents. 
@@ -106,19 +109,19 @@ def run_query(query_token_counts, index, doc_freq, doc_norm, num_docs):
     for doc_id in doc_to_score.keys():
         doc_to_score[doc_id] /= doc_norm[doc_id] * query_norm
 
-    sorted_docs = sorted(doc_to_score.items(), key=lambda x:-x[1])
+    sorted_docs = sorted(doc_to_score.items(), key=lambda x: -x[1])
     return sorted_docs
+
 
 # load the index from disk
 (index, doc_freq, doc_ids, num_docs) = pickle.load(open("stored_index.pik", "rb"))
 
 # process some doc norms (in practice we would want to store this on disk, for
 # simplicity in this assignment it is written here)
-doc_norms = get_doc_to_norm(index, doc_freq, num_docs) 
+doc_norms = get_doc_to_norm(index, doc_freq, num_docs)
 
 # get a reverse mapping from doc_ids to document paths
-ids_to_doc = {v:k for k, v in doc_ids.items()}
-
+ids_to_doc = {v: k for k, v in doc_ids.items()}
 
 # run all the queries in the evaluation dataset and store the result for evaluation
 fout = open("./runs/retrieved.txt", "w")
@@ -142,4 +145,3 @@ for lines in open("./gov/topics/gov.topics", "r"):
         fout.write(strout)
 
 fout.close()
-
