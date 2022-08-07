@@ -62,6 +62,7 @@ def run_boolean_query(query, index):
     result_lst = [doc_id for doc_id, _ in index[query_lst[0]]]
     while ptr < len(query_lst):
         connective = query_lst[ptr]
+        assert connective in ("AND", "OR")
         next_lst = [doc_id for doc_id, _ in index[query_lst[ptr + 1]]]
         if connective == "AND":
             result_lst = intersect_query(result_lst, next_lst)

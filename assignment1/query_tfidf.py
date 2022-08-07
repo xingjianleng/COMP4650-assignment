@@ -100,14 +100,12 @@ def run_query(query_token_counts, index, doc_freq, doc_norm, num_docs):
         if query_term not in index:
             continue
         # calculate the dot product of TF-IDF score for documents and the query
+        # divide the dot product values by the product of their norms to get cosine similarity
         for doc_id, doc_tf in index[query_term]:
             idf = np.log(num_docs / (1 + doc_freq[query_term]))
             doc_tfidf = doc_tf * idf
             query_tfidf = query_tf * idf
-            doc_to_score[doc_id] += query_tfidf * doc_tfidf
-    # divide the dot product values by the product of their norms to get cosine similarity
-    for doc_id in doc_to_score.keys():
-        doc_to_score[doc_id] /= doc_norm[doc_id] * query_norm
+            doc_to_score[doc_id] += query_tfidf * doc_tfidf / (doc_norm[doc_id] * query_norm)
 
     sorted_docs = sorted(doc_to_score.items(), key=lambda x: -x[1])
     return sorted_docs
