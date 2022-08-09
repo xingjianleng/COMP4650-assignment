@@ -1,7 +1,10 @@
 **/gov/
 **/.idea/
 **/runs/
+**/__pycache__/
 **/instruction.pdf
 
 **/.DS_Store
 **/*.pik
+**/*.docx
+**/*.doc
