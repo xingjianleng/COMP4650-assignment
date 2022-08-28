@@ -12,6 +12,7 @@
 
 # notebook files are too large for git repos
 *.ipynb
+**/.ipynb_checkpoints/
 
 # data and pictures and document 
 *.csv
