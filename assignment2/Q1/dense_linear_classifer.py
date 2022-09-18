@@ -109,7 +109,7 @@ def test_model(model, Xtst, Ytst):
 # search for the best C parameter using the validation set
 c_options = []
 acc = []
-cs = np.arange(60, 75, 0.25)
+cs = np.arange(59, 71, 0.25)
 for c in cs:
     val_acc = test_model(fit_model(X_train, Y_train, c), X_val, Y_val)
     c_options.append(c)
@@ -127,4 +127,6 @@ print(f"Best c chosen {best_c}")
 
 # fit the model to the concatenated training and validation set
 #   test on the test set and print the result
-print(f"The test accuracy of highest {test_model(fit_model(X_train, Y_train, C=best_c), X_test, Y_test)}")
+X_concat = Xr[0:val_end]
+Y_concat = Yr[0:val_end]
+print(f"The test accuracy of highest {test_model(fit_model(X_concat, Y_concat, C=best_c), X_test, Y_test)}")

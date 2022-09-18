@@ -28,3 +28,8 @@
 
 # not to include the README file from A2 Q1
 /assignment2/Q1/data/README
+
+# do not include report
+**/u7136359.pdf
+
+submissions/*

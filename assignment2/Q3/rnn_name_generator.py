@@ -193,9 +193,9 @@ def gen_string(model, id_to_char, max_len=20, sample=True):
 
         chosen_char = id_to_char[chosen_idx]
         x = torch.tensor([[chosen_idx]], dtype=torch.long)
-        out_str.append(chosen_char)
         if chosen_char == ".":
             break
+        out_str.append(chosen_char)
 
     # set the model back to training mode in case we need gradients later
     model.train()
