@@ -4,8 +4,6 @@
 **/.DS_Store
 **/__pycache__/
 
-# don't include instruction
-**/instruction.pdf
 
 # data for A1
 **/gov/
@@ -16,20 +14,20 @@
 
 # data and pictures and document 
 *.csv
+*.txt
 *.json
 *.pik
 *.docx
 *.doc
 *.png
 *.npz
+*.mp4
+*.pdf
 
 # pre-trained word2vec file in A2
 *.vec
 
 # not to include the README file from A2 Q1
 /assignment2/Q1/data/README
-
-# do not include report
-**/u7136359.pdf
 
 submissions/*

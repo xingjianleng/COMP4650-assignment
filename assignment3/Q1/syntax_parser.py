@@ -48,44 +48,56 @@ class RuleWriter(object):
 
 
 # load the parsed sentences
-# psents = json.load(open("parsed_sents_list.json", "r"))
-psents = [['A', ['B', ['C', 'blue']], ['B', 'cat']]] # test case
+psents = json.load(open("parsed_sents_list.json", "r"))
+# psents = [['A', ['B', ['C', 'blue']], ['B', 'cat']]] # test case
 
 # print a few parsed sentences
 # NOTE: you can remove this if you like
 # for sent in psents[:10]:
 #     print(sent)
 
+
 # TODO: estimate the conditional probabilities of the rules in the grammar
-class Rules:
-    def __init__(self):
-        self.rules = defaultdict([])
+def parse_sent(sent, rules=defaultdict(list)):
+    # Parser for each sentence
+    # DFS approach to visit all nodes
+    curr_node = sent[0]
+    children = sent[1:]
 
-    def add_rule(self, lhs, rhs):
-        if isinstance(rhs, list):
-            rhs = tuple(rhs)
-        assert isinstance(lhs, str) and isinstance(rhs, tuple)
-        self.rules[lhs].append(rhs)
+    # lexicon, RHS is a single word
+    if len(children) == 1 and type(children[0]) == str:
+        rules[curr_node].append(tuple(children))
 
-    def transform(self):
-        writer_obj = RuleWriter()
-        for lhs, rhs_lst in self.rules.items():
-            counter = Counter(rhs_lst)
-            for possible_rhs, freq in counter.items():
-                writer_obj.add_rule(lhs, possible_rhs, freq / len(rhs_lst))
-        return writer_obj
+    # CFG rule
+    else:
+        # for each children, append current CFG rule,
+        rules[curr_node].append(tuple([child[0] for child in children]))
+        for child in children:
+            # for each children, parse the next rule
+            parse_sent(child, rules=rules)
+    return rules
 
 
-def parsing(sent):
-    # function for parsing a single sentence
-    pass
+def parse_psents(psents):
+    # Iteratively parse each sentence, put results in the rules dictionary
+    rules = defaultdict(list)
+    for sent in psents:
+        parse_sent(sent=sent, rules=rules)
+    return rules
 
-rules = Rules()
-rules.add_rule("A", ["B", "B"])
-rules.add_rule("B", ["C"])
-rules.add_rule("B", ["cat"])
-rules.add_rule("C", ["blue"])
+
+def rules_to_writer(rules):
+    writer_obj = RuleWriter()
+    # add LHS to RHS mapping
+    for lhs, rhs_lst in rules.items():
+        counter = Counter(rhs_lst)
+        for possible_rhs, freq in counter.items():
+            writer_obj.add_rule(lhs, possible_rhs, freq / len(rhs_lst))
+    return writer_obj
+
+# the RuleWriter object for formated writing
+writer_obj = rules_to_writer(parse_psents(psents))
     
 
 # TODO: write the rules to the correct output file using the write_rules method
-rules.transform().write_rules()
+writer_obj.write_rules()
