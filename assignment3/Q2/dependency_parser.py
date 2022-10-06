@@ -164,8 +164,20 @@ class DepParser(object):
         """
 
         #TODO: implement left arc according to the lecture slides
+        if self.ctx.is_stack_empty() or self.ctx.is_buffer_empty():
+            return False
+        else:
+            stack_top = self.ctx.stack_top()
+            buffer_top = self.ctx.next_buffer_word_id()
 
-        return True
+            if stack_top != "[ROOT]" \
+                and (self.ctx.word_id_to_str(buffer_top), self.ctx.word_id_to_str(stack_top)) in self.rules \
+                    and not self.ctx.has_dependency_with_target(stack_top):
+                self.ctx.pop_stack()
+                self.ctx.add_dependency(buffer_top, stack_top)
+                return True
+            else:
+                return False
 
     def right_arc(self):
         """Check if a right arc can be performed. 
@@ -177,8 +189,20 @@ class DepParser(object):
         """
 
         #TODO: implement right arc according to the lecture slides
+        if self.ctx.is_stack_empty() or self.ctx.is_buffer_empty():
+            return False
+        else:
+            stack_top = self.ctx.stack_top()
+            buffer_top = self.ctx.next_buffer_word_id()
 
-        return True
+            if (self.ctx.word_id_to_str(stack_top), self.ctx.word_id_to_str(buffer_top)) in self.rules \
+                and not self.ctx.has_dependency_with_target(buffer_top):
+                self.ctx.push_stack(buffer_top)
+                self.ctx.pop_buffer()
+                self.ctx.add_dependency(stack_top, buffer_top)
+                return True
+            else:
+                return False
 
     def reduce(self):
         """Check if reduce can be performed. 
@@ -190,6 +214,12 @@ class DepParser(object):
         """
 
         #TODO: implement reduce according to the lecture slides
+        if not self.ctx.is_stack_empty():
+            stack_top = self.ctx.stack_top()
+
+            if self.ctx.has_dependency_with_target(stack_top):
+                self.ctx.pop_stack()
+                return True
 
         return False
 
@@ -234,8 +264,17 @@ def parse(dp):
 
     #TODO implement parse, follow the instructions in the doc comment above 
     # refer back to the lecture slides if you have trouble
-
-    return True
+    operations = (dp.left_arc, dp.right_arc, dp.reduce, dp.shift)
+    # iterate until no operation can apply
+    while True:
+        for i, operation in enumerate(operations):
+            if operation():
+                break
+            elif i == len(operations) - 1:
+                # should pop the root if execution is correct
+                # otherwise we should return false
+                dp.ctx.pop_stack()
+                return dp.ctx.is_stack_empty()
 
 
 def main():
