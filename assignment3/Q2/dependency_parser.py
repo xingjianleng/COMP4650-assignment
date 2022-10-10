@@ -265,7 +265,8 @@ def parse(dp):
     #TODO implement parse, follow the instructions in the doc comment above 
     # refer back to the lecture slides if you have trouble
     operations = (dp.left_arc, dp.right_arc, dp.reduce, dp.shift)
-    # iterate until no operation can apply
+    # iterate until no operation can apply, it could be the case
+    # that buffer is empty but reduce can be applied
     while True:
         for i, operation in enumerate(operations):
             if operation():

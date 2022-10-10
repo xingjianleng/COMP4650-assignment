@@ -70,6 +70,25 @@ def parse_gold(dp, gold):
     # so that it works for unlabelled dependency parsing.
     # if needed you can add helper methods within this file (oracle_parser.py)
 
+    while not dp.ctx.is_buffer_empty():
+        states.append(extract_features(dp.ctx))
+        stack_top = dp.ctx.stack_top()
+        buffer_top = dp.ctx.next_buffer_word_id()
+
+        if (buffer_top, stack_top) in gold and dp.left_arc():
+            actions.append("left")
+        
+        elif (stack_top, buffer_top) in gold and dp.right_arc():
+            actions.append("right")
+        
+        elif any([((buffer_top, k) in gold or (k, buffer_top) in gold) for k in range(stack_top)]) and dp.reduce():
+            # there is the case where the condition is satisfied, but actually we can't apply reduce
+            actions.append("reduce")
+
+        else:
+            actions.append("shift")
+            dp.shift()
+
     return actions, states
 
 
