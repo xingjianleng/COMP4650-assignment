@@ -272,10 +272,7 @@ def parse(dp):
             if operation():
                 break
             elif i == len(operations) - 1:
-                # should pop the root if execution is correct
-                # otherwise we should return false
-                dp.ctx.pop_stack()
-                return dp.ctx.is_stack_empty()
+                return dp.ctx.is_buffer_empty()
 
 
 def main():
