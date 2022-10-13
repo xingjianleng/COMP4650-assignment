@@ -1,5 +1,6 @@
-from itertools import combinations
+from itertools import product
 import json
+from msilib import sequence
 import pandas as pd
 import numpy as np
 import spacy
@@ -81,6 +82,20 @@ print_example(test_data, 2)
 #       using the write_output_file function.
 
 
+# function for preprocess feature from sentences
+def sentence_processing(sent, start, end):
+    sequence = []
+    for index in range(start, end):
+        # only if the token is not stopword, and only contain alphabetic characters
+        if not sent["isstop"][index] and sent["isalpha"][index]:
+            sequence.append(sent["tokens"][index].lower())
+    spacy_sequence = nlp(" ".join(sequence))
+    rtn = []
+    for token in spacy_sequence:
+        rtn.append(token.lemma_)
+    return rtn
+
+
 # training set preprocessing
 def train_preprocess(data_dict):
     feature_sents = []
@@ -101,21 +116,13 @@ def train_preprocess(data_dict):
 
         # NOTE: inspired from online resources, see report
         # we allow the relation word to extend the relation word with length 3
+        # Features: words in between entities, entities themselves, words in particular positions
         start = max(min(entity_idx_a[0], entity_idx_b[0]) - 3, 0)
         end = min(max(entity_idx_a[1], entity_idx_b[1]) + 3, len(sent["tokens"]))
 
         # preprocessing features
-        sequence = []
-        for index in range(start, end):
-            # only if the token is not stopword, and only contain alphabetic characters, and 
-            if not sent["isstop"][index] and sent["isalpha"][index] and sent["shape"][index].startswith("X"):
-                sequence.append(sent["tokens"][index].lower())
-        # processing the sequence
-        processed = nlp(" ".join(sequence))
-        lemmatized = []
-        for token in processed:
-            lemmatized.append(token.lemma_)
-        feature_sents.append(" ".join(sequence))
+        processed_sequence = sentence_processing(sent, start, end)
+        feature_sents.append(" ".join(processed_sequence))
 
         # preprocessing labels
         if sent["relation"]["relation"] == nationality:
@@ -127,12 +134,43 @@ def train_preprocess(data_dict):
 
 
 def test_preprocess(data_dict):
-    feature_sent = []
+    indices_original_sent = []
+    feature_sents = []
+    entities = []
 
-    for sent in data_dict:
-        pass
-    
-    return feature_sent
+    for i, sent in enumerate(tqdm.tqdm(data_dict)):
+        # we only extract GPE and PERSON as they are the only chance for nationality
+        gpes_indices = []
+        persons_indices = []
+        for entity in sent["entities"]:
+            if entity["label"] == "GPE":
+                gpes_indices.append((entity["start"], entity["end"]))
+            elif entity["label"] == "PERSON":
+                persons_indices.append((entity["start"], entity["end"]))
+
+        entity_indices_combinations = product(persons_indices, gpes_indices)
+        
+        # extract features for each entity pairs in the given list
+        for a_idx, b_idx in entity_indices_combinations:
+            # allow a extension of window 3
+            start = max(min(a_idx[0], b_idx[0]) - 3, 0)
+            end = min(max(a_idx[1], b_idx[1]) + 3, len(sent["tokens"]))
+
+            # preprocessing features
+            processed_sequence = sentence_processing(sent, start, end)
+
+            # append the corresponding sentence index
+            indices_original_sent.append(i)
+            # append features to the list
+            feature_sents.append(" ".join(processed_sequence))
+            # append the entity words used
+            entities.append((sent["tokens"][a_idx[0]: a_idx[1]], sent["tokens"][b_idx[0]: b_idx[1]]))
+
+    return indices_original_sent, feature_sents, entities
+
+
+def test_postprocess():
+    pass
 
 
 train_x, train_y = train_preprocess(train_data)
