@@ -7,7 +7,6 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score
-from random import choices
 import tqdm
 
 
@@ -65,6 +64,7 @@ def write_output_file(relations, filename = "q3.csv"):
     df = pd.DataFrame(out)
     df.to_csv(filename, index=False)
 
+
 # print a single training example
 print("Training example:")
 print_example(train_data, 1)
@@ -80,6 +80,8 @@ print_example(test_data, 2)
 #       then write the list of relations extracted from the *test set* to "q3.csv"
 #       using the write_output_file function.
 
+
+# training set preprocessing
 def train_preprocess(data_dict):
     feature_sents = []
     labels = []
@@ -88,52 +90,69 @@ def train_preprocess(data_dict):
     for sent in tqdm.tqdm(data_dict):
         # extract relation indices
         relation_a, relation_b = sent["relation"]["a"], sent["relation"]["b"]
-        for entity in sent["entities"]:
-            start = entity["start"]
-            end = entity["end"]
-            entity_str = sent["tokens"][start: end]
-            if relation_a == entity_str:
-                x = entity["start"], entity["end"]
-            if relation_b == entity_str:
-                y = entity["start"], entity["end"]
 
-        # preprocessing labels
-        if sent["relation"]["relation"] == nationality:
-            labels.append(1)
-        else:
-            labels.append(0)
+        for entity in sent["entities"]:
+            # range from first proper noun to last proper noun
+            entity_tokens = sent["tokens"][entity["start"]: entity["end"]]
+            if entity_tokens == relation_a:
+                entity_idx_a = entity["start"], entity["end"]
+            if entity_tokens == relation_b:
+                entity_idx_b = entity["start"], entity["end"]
+
+        # NOTE: inspired from online resources, see report
+        # we allow the relation word to extend the relation word with length 3
+        start = max(min(entity_idx_a[0], entity_idx_b[0]) - 3, 0)
+        end = min(max(entity_idx_a[1], entity_idx_b[1]) + 3, len(sent["tokens"]))
 
         # preprocessing features
-        # NOTE: inspired from online resources, see report
-        start = max(min(x[0], y[0]) - 3, 0)
-        end = min(max(x[1], y[1]) + 3, len(sent["tokens"]))
-        entity_indices = list(range(x[0], x[1])) + list(range(y[0], y[1]))
         sequence = []
         for index in range(start, end):
-            if index not in entity_indices and not sent["isstop"][index] and sent["isalpha"][index]:
+            # only if the token is not stopword, and only contain alphabetic characters, and 
+            if not sent["isstop"][index] and sent["isalpha"][index] and sent["shape"][index].startswith("X"):
                 sequence.append(sent["tokens"][index].lower())
         # processing the sequence
         processed = nlp(" ".join(sequence))
         lemmatized = []
         for token in processed:
             lemmatized.append(token.lemma_)
-        feature_sents.append(" ".join(lemmatized))
+        feature_sents.append(" ".join(sequence))
+
+        # preprocessing labels
+        if sent["relation"]["relation"] == nationality:
+            labels.append(1)
+        else:
+            labels.append(0)
     
     return feature_sents, labels
 
 
 def test_preprocess(data_dict):
-    pass
+    feature_sent = []
+
+    for sent in data_dict:
+        pass
+    
+    return feature_sent
 
 
 train_x, train_y = train_preprocess(train_data)
-train_x, val_x, train_y, val_y = train_test_split(train_x, train_y, test_size=0.15)
+train_x, val_x, train_y, val_y = train_test_split(train_x, train_y, test_size=0.2)
 
 cv = CountVectorizer()
 mat = cv.fit_transform(train_x)
 lr = LogisticRegression(class_weight="balanced")
 lr.fit(mat, train_y)
 
+pred_val = lr.predict(cv.transform(train_x))
+precision = precision_score(train_y, pred_val)
+acu = accuracy_score(train_y, pred_val)
+recall = recall_score(train_y, pred_val, average="macro")
+score = f1_score(train_y, pred_val)
+print("precision %f "%precision)
+print("recall %f "%recall)
+print("auccuacy %f "%acu)
+print("score %f "%score)
+print()
 
 # validation
 pred_val = lr.predict(cv.transform(val_x))
