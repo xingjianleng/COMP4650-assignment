@@ -1,6 +1,5 @@
 from itertools import product
 import json
-from msilib import sequence
 import pandas as pd
 import numpy as np
 import spacy
@@ -12,9 +11,14 @@ import tqdm
 
 
 # read in the data
-train_data = json.load(open("sents_parsed_train.json", "r"))
-test_data = json.load(open("sents_parsed_test.json", "r"))
+# train_data = json.load(open("sents_parsed_train.json", "r"))
+# test_data = json.load(open("sents_parsed_test.json", "r"))
+train_data = json.load(open("train.json", "r"))
+test_data = json.load(open("val.json", "r"))
 
+with open("country_names.txt", "r") as f:
+    countries = f.read()
+    countries = countries.split("\n")[:-1]
 
 # load spacy stopwords
 nlp = spacy.load("en_core_web_sm")
@@ -100,6 +104,7 @@ def sentence_processing(sent, start, end):
 def train_preprocess(data_dict):
     feature_sents = []
     labels = []
+    distance = []
     nationality = '/people/person/nationality'
 
     for sent in tqdm.tqdm(data_dict):
@@ -123,6 +128,7 @@ def train_preprocess(data_dict):
         # preprocessing features
         processed_sequence = sentence_processing(sent, start, end)
         feature_sents.append(" ".join(processed_sequence))
+        distance.append(end - start)
 
         # preprocessing labels
         if sent["relation"]["relation"] == nationality:
@@ -130,20 +136,27 @@ def train_preprocess(data_dict):
         else:
             labels.append(0)
     
-    return feature_sents, labels
+    cv = CountVectorizer()
+    train_features = cv.fit_transform(feature_sents).toarray()
+    embedded_features = np.hstack((train_features, np.array(distance).reshape(-1, 1)))
+
+    return embedded_features, cv, labels
 
 
-def test_preprocess(data_dict):
+def test_preprocess(data_dict, cv):
     indices_original_sent = []
     feature_sents = []
     entities = []
+    distance = []
 
     for i, sent in enumerate(tqdm.tqdm(data_dict)):
         # we only extract GPE and PERSON as they are the only chance for nationality
         gpes_indices = []
         persons_indices = []
         for entity in sent["entities"]:
-            if entity["label"] == "GPE":
+            x = sent["tokens"][entity["start"]: entity["end"]]
+            if entity["label"] == "GPE" and " ".join(sent["tokens"][entity["start"]: entity["end"]]) in countries:
+                # check if the entity is in country list
                 gpes_indices.append((entity["start"], entity["end"]))
             elif entity["label"] == "PERSON":
                 persons_indices.append((entity["start"], entity["end"]))
@@ -165,23 +178,31 @@ def test_preprocess(data_dict):
             feature_sents.append(" ".join(processed_sequence))
             # append the entity words used
             entities.append((sent["tokens"][a_idx[0]: a_idx[1]], sent["tokens"][b_idx[0]: b_idx[1]]))
+            # add distance (# of words) between entities
+            distance.append(end - start)
 
-    return indices_original_sent, feature_sents, entities
+    features = cv.transform(feature_sents).toarray()
+    embedded_features = np.hstack((features, np.array(distance).reshape(-1, 1)))
+
+    return indices_original_sent, embedded_features, entities
 
 
-def test_postprocess():
-    pass
+def test_postprocess(predictions, entities):
+    relations = []
+    for i, prediction in enumerate(predictions):
+        if prediction == 1:
+            relations.append((" ".join(entities[i][0]), " ".join(entities[i][1])))
+    write_output_file(relations=relations)
 
 
-train_x, train_y = train_preprocess(train_data)
+train_x, cv, train_y = train_preprocess(train_data)
 train_x, val_x, train_y, val_y = train_test_split(train_x, train_y, test_size=0.2)
 
-cv = CountVectorizer()
-mat = cv.fit_transform(train_x)
-lr = LogisticRegression(class_weight="balanced")
-lr.fit(mat, train_y)
+lr = LogisticRegression(max_iter=500, class_weight="balanced")
+lr.fit(train_x, train_y)
 
-pred_val = lr.predict(cv.transform(train_x))
+# training data
+pred_val = lr.predict(train_x)
 precision = precision_score(train_y, pred_val)
 acu = accuracy_score(train_y, pred_val)
 recall = recall_score(train_y, pred_val, average="macro")
@@ -193,7 +214,7 @@ print("score %f "%score)
 print()
 
 # validation
-pred_val = lr.predict(cv.transform(val_x))
+pred_val = lr.predict(val_x)
 precision = precision_score(val_y, pred_val)
 acu = accuracy_score(val_y, pred_val)
 recall = recall_score(val_y, pred_val, average="macro")
@@ -208,8 +229,6 @@ print("score %f "%score)
 # normally you would use the list of relations output by your model
 # as an example we have hard coded some relations from the training set to write to the output file
 # TODO: remove this and write out the relations you extracted (obviously don't hard code them)
-relations = [
-    ('Hokusai', 'Japan'), 
-    ('Hans Christian Andersen', 'Denmark')
-    ]
-write_output_file(relations)
+test_sent_indices, test_features, entities = test_preprocess(test_data, cv)
+test_predictions = lr.predict(test_features)
+test_postprocess(test_predictions, entities)
