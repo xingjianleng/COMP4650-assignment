@@ -4,7 +4,6 @@ import pandas as pd
 import spacy
 from sklearn.linear_model import LogisticRegression
 from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.model_selection import train_test_split
 from sklearn.model_selection import GridSearchCV
 import multiprocessing
 import tqdm
@@ -209,13 +208,11 @@ def test_postprocess(prediction_prob, entities, entity_distance):
 
 
 train_x, cv, train_y = train_preprocess(train_data)
-# train_x, val_x, train_y, val_y = train_test_split(train_x, train_y, test_size=0.15, seed=42)
 
 lr = LogisticRegression()
-
 gs = GridSearchCV(
     estimator=lr,
-    param_grid={"C": (1, 100, 500, 1000, 5000, 10000), "max_iter": (100, 1000, 3000), "class_weight": (None, "balanced")},
+    param_grid={"C": (0.1, 1, 100, 1000, 10000), "max_iter": (100, 1000, 3000), "class_weight": (None, "balanced")},
     scoring="f1_macro",
     n_jobs=multiprocessing.cpu_count(),
     refit=True
