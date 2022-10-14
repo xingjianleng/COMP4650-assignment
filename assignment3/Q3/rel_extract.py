@@ -5,6 +5,8 @@ import spacy
 from sklearn.linear_model import LogisticRegression
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.model_selection import train_test_split
+from sklearn.model_selection import GridSearchCV
+import multiprocessing
 import tqdm
 
 
@@ -207,15 +209,24 @@ def test_postprocess(prediction_prob, entities, entity_distance):
 
 
 train_x, cv, train_y = train_preprocess(train_data)
-train_x, val_x, train_y, val_y = train_test_split(train_x, train_y, test_size=0.15)
+# train_x, val_x, train_y, val_y = train_test_split(train_x, train_y, test_size=0.15, seed=42)
 
-lr = LogisticRegression(max_iter=3000, class_weight="balanced")
-lr.fit(train_x, train_y)
+lr = LogisticRegression()
+
+gs = GridSearchCV(
+    estimator=lr,
+    param_grid={"C": (1, 100, 500, 1000, 5000, 10000), "max_iter": (100, 1000, 3000), "class_weight": (None, "balanced")},
+    scoring="f1_macro",
+    n_jobs=multiprocessing.cpu_count(),
+    refit=True
+)
+gs.fit(train_x, train_y)
+print(f"Used parameters:\n{gs.best_params_}")
 
 # Example only: write out some relations to the output file
 # normally you would use the list of relations output by your model
 # as an example we have hard coded some relations from the training set to write to the output file
 # TODO: remove this and write out the relations you extracted (obviously don't hard code them)
 test_features, entities, entity_distance = test_preprocess(test_data, cv)
-prediction_prob = lr.predict_proba(test_features)
+prediction_prob = gs.predict_proba(test_features)
 test_postprocess(prediction_prob, entities, entity_distance)
